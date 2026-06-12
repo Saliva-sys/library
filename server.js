@@ -6,6 +6,7 @@ const PORT = 3000;
 // Nastavenie, aby server vedel spracovať formuláre a JSON dáta
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.static('public'));
 
 // 1. Pripojenie k databáze (ak súbor neexistuje, SQLite ho automaticky vytvorí)
 const db = new sqlite3.Database('./kniznica.db', (err) => {
