@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose(); // Importujeme SQLite3
 const app = express();
@@ -5,7 +6,15 @@ const PORT = 3000;
 
 // Nastavenie, aby server vedel spracovať formuláre a JSON dáta
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
+
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+});
+
 app.use(express.static('public'));
 
 // 1. Pripojenie k databáze (ak súbor neexistuje, SQLite ho automaticky vytvorí)
@@ -16,6 +25,8 @@ const db = new sqlite3.Database('./kniznica.db', (err) => {
         console.log('Pripojené k SQLite databáze (súbor kniznica.db).');
     }
 });
+
+db.run('PRAGMA foreign_keys = ON');
 
 // 2. Vytvorenie tabuliek podľa zadania SunSoftu
 db.serialize(() => {
@@ -54,7 +65,7 @@ db.serialize(() => {
 
 // Hlavná cesta - načíta náš frontend (index.html)
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Spustenie servera na porte 3000
@@ -175,24 +186,52 @@ app.post('/api/borrows', (req, res) => {
         return res.status(400).json({ error: 'Musíte vybrať čitateľa aj knihu!' });
     }
 
+    const parsedBookId = parseInt(book_id, 10);
+    if (Number.isNaN(parsedBookId)) {
+        return res.status(400).json({ error: 'Neplatné ID knihy.' });
+    }
+
     const borrow_date = new Date().toISOString().split('T')[0]; // Dnešný dátum v tvare YYYY-MM-DD
 
-    // Krok A: Zapíšeme výpožičku do tabuľky borrows
-    const sqlBorrow = `INSERT INTO borrows (op_number, book_id, borrow_date) VALUES (?, ?, ?)`;
-    
-    db.run(sqlBorrow, [op_number, book_id, borrow_date], function(err) {
-        if (err) {
-            console.error('Chyba pri zápise výpožičky:', err.message);
-            return res.status(500).json({ error: 'Chyba servera pri vytváraní výpožičky.' });
+    const sqlCheckReader = `SELECT op_number FROM readers WHERE op_number = ?`;
+    db.get(sqlCheckReader, [op_number], (readerErr, readerRow) => {
+        if (readerErr) {
+            console.error('Chyba pri overovaní čitateľa:', readerErr.message);
+            return res.status(500).json({ error: 'Chyba servera pri overení čitateľa.' });
+        }
+        if (!readerRow) {
+            return res.status(404).json({ error: 'Vybraný čitateľ sa nenašiel.' });
         }
 
-        // Krok B: Aktualizujeme stav knihy v tabuľke books na 1 (požičaná)
-        const sqlUpdateBook = `UPDATE books SET is_borrowed = 1 WHERE id = ?`;
-        db.run(sqlUpdateBook, [book_id], (updateErr) => {
-            if (updateErr) {
-                console.error('Chyba pri aktualizácii stavu knihy:', updateErr.message);
+        const sqlCheckBook = `SELECT is_borrowed FROM books WHERE id = ?`;
+        db.get(sqlCheckBook, [parsedBookId], (checkErr, row) => {
+            if (checkErr) {
+                console.error('Chyba pri kontrole stavu knihy:', checkErr.message);
+                return res.status(500).json({ error: 'Chyba servera pri overení knihy.' });
             }
-            res.status(201).json({ message: 'Kniha bola úspešne požičaná!' });
+            if (!row) {
+                return res.status(404).json({ error: 'Vybraná kniha sa nenašla.' });
+            }
+            if (row.is_borrowed === 1) {
+                return res.status(400).json({ error: 'Táto kniha je už požičaná.' });
+            }
+
+            const sqlBorrow = `INSERT INTO borrows (op_number, book_id, borrow_date) VALUES (?, ?, ?)`;
+            db.run(sqlBorrow, [op_number, parsedBookId, borrow_date], function(err) {
+                if (err) {
+                    console.error('Chyba pri zápise výpožičky:', err.message);
+                    return res.status(500).json({ error: 'Chyba servera pri vytváraní výpožičky.' });
+                }
+
+                const sqlUpdateBook = `UPDATE books SET is_borrowed = 1 WHERE id = ?`;
+                db.run(sqlUpdateBook, [parsedBookId], (updateErr) => {
+                    if (updateErr) {
+                        console.error('Chyba pri aktualizácii stavu knihy:', updateErr.message);
+                        return res.status(500).json({ error: 'Chyba servera pri aktualizácii stavu knihy.' });
+                    }
+                    res.status(201).json({ message: 'Kniha bola úspešne požičaná!' });
+                });
+            });
         });
     });
 });
@@ -219,24 +258,33 @@ app.get('/api/borrows', (req, res) => {
 
 // 3. Vrátenie knihy (vymazanie výpožičky a uvoľnenie knihy)
 app.delete('/api/borrows/:id', (req, res) => {
-    const borrowId = req.params.id;
+    const borrowId = parseInt(req.params.id, 10);
+    if (Number.isNaN(borrowId)) {
+        return res.status(400).json({ error: 'Neplatné ID výpožičky.' });
+    }
 
-    // Krok A: Najprv zistíme, o ktorú knihu ide, aby sme ju mohli uvoľniť
     db.get(`SELECT book_id FROM borrows WHERE id = ?`, [borrowId], (err, row) => {
-        if (err || !row) {
+        if (err) {
+            console.error('Chyba pri získavaní výpožičky:', err.message);
+            return res.status(500).json({ error: 'Chyba servera pri spracovaní požiadavky.' });
+        }
+        if (!row) {
             return res.status(404).json({ error: 'Výpožička sa nenašla.' });
         }
 
         const bookId = row.book_id;
 
-        // Krok B: Vymažeme záznam z tabuľky borrows
         db.run(`DELETE FROM borrows WHERE id = ?`, [borrowId], (delErr) => {
             if (delErr) {
+                console.error('Chyba pri mazaní výpožičky:', delErr.message);
                 return res.status(500).json({ error: 'Chyba pri vracaní knihy.' });
             }
 
-            // Krok C: Nastavíme knihu späť ako dostupnú (is_borrowed = 0)
             db.run(`UPDATE books SET is_borrowed = 0 WHERE id = ?`, [bookId], (upErr) => {
+                if (upErr) {
+                    console.error('Chyba pri aktualizácii stavu knihy po vrátení:', upErr.message);
+                    return res.status(500).json({ error: 'Chyba servera pri uvoľňovaní knihy.' });
+                }
                 res.json({ message: 'Kniha bola úspešne vrátená do knižnice!' });
             });
         });
@@ -249,6 +297,10 @@ app.delete('/api/readers/:op', (req, res) => {
 
     // Najprv skontrolujeme, či nemá čitateľ náhodou požičanú knihu
     db.get(`SELECT id FROM borrows WHERE op_number = ?`, [opNumber], (err, row) => {
+        if (err) {
+            console.error('Chyba pri kontrole výpožičiek:', err.message);
+            return res.status(500).json({ error: 'Chyba servera pri overení čitateľa.' });
+        }
         if (row) {
             return res.status(400).json({ error: 'Nemožno vymazať čitateľa, ktorý má aktuálne požičanú knihu!' });
         }
