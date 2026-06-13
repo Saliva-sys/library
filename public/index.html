@@ -4,62 +4,471 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Knižnica - SunSoft</title>
-    <!-- Tu spájame náš web s Bootstrapom cez internet -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Jemné vizuálne vylepšenia */
+        body { background-color: #f4f6f9 !important; }
+        .card { border: none; border-radius: 10px; }
+        .card-header { border-top-left-radius: 10px !important; border-top-right-radius: 10px !important; }
+        .table { margin-bottom: 0; }
+    </style>
 </head>
-<body class="bg-light">
+<body>
 
     <div class="container my-5">
-        <!-- Hlavný nadpis aplikácie -->
-        <div class="p-5 mb-4 bg-dark text-white rounded-3 shadow">
+        <div class="p-5 mb-5 bg-dark text-white rounded-3 shadow">
             <h1 class="display-5 fw-bold">📚 Systém Knižnica pre SunSoft</h1>
-            <p class="col-md-8 fs-4 text-secondary">Interná evidencia kníh, čitateľov a výpožičiek.</p>
+            <p class="col-md-8 fs-5 text-secondary">Interná evidencia kníh, čitateľov a aktívnych výpožičiek.</p>
         </div>
 
-        <div class="row g-4">
-            <!-- 1. SEKCE: KNIHY -->
-            <div class="col-md-6">
+        <div class="row g-4 mb-4">
+            
+            <div class="col-xl-6 col-lg-12">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header bg-primary text-white fw-bold">📖 Správa kníh</div>
-                    <div class="card-body">
+                    <div class="card-header bg-primary text-white fw-bold py-3">📖 Správa kníh</div>
+                    <div class="card-body p-4">
                         <form class="mb-4">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Názov knihy</label>
-                                <input type="text" class="form-control" placeholder="Napr. Kód neznámy" required>
+                                <label class="form-label fw-bold small text-uppercase text-muted">Názov knihy</label>
+                                <input type="text" class="form-control form-control-lg" placeholder="Napr. Kód neznámy" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Autor</label>
-                                <input type="text" class="form-control" placeholder="Napr. Ján Kustra" required>
+                                <label class="form-label fw-bold small text-uppercase text-muted">Autor</label>
+                                <input type="text" class="form-control form-control-lg" placeholder="Napr. Ján Kustra" required>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">➕ Pridať novú knihu</button>
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">➕ Pridať novú knihu</button>
                         </form>
+
+                        <hr class="my-4">
+
+                        <h5 class="fw-bold mb-3 text-dark">Zoznam kníh v knižnici</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 8%;">ID</th>
+                                        <th>Názov</th>
+                                        <th>Autor</th>
+                                        <th style="width: 15%;">Stav</th>
+                                        <th>Požičal si</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="books-table-body">
+                                    <tr>
+                                        <td colspan="5" class="text-muted text-center py-3">Načítavam knihy...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. SEKCE: ČITATELIA -->
-            <div class="col-md-6">
+            <div class="col-xl-6 col-lg-12">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header bg-success text-white fw-bold">👥 Správa čitateľov</div>
-                    <div class="card-body">
-                        <p class="text-muted">Tu bude evidencia občianskych preukazov a mien.</p>
+                    <div class="card-header bg-success text-white fw-bold py-3">👥 Správa čitateľov</div>
+                    <div class="card-body p-4">
+                        <form class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Číslo OP</label>
+                                <input type="text" class="form-control form-control-lg" placeholder="Napr. EA123456" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small text-uppercase text-muted">Meno</label>
+                                    <input type="text" class="form-control form-control-lg" placeholder="Napr. Ján" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small text-uppercase text-muted">Priezvisko</label>
+                                    <input type="text" class="form-control form-control-lg" placeholder="Napr. Mrkvička" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Dátum narodenia</label>
+                                <input type="date" class="form-control form-control-lg" required>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100 py-2 fw-bold">➕ Zaevidovať čitateľa</button>
+                        </form>
+
+                        <hr class="my-4">
+
+                        <h5 class="fw-bold mb-3 text-dark">Zoznam čitateľov</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Číslo OP</th>
+                                        <th>Meno a priezvisko</th>
+                                        <th>Dátum narodenia</th>
+                                        <th class="text-center" style="width: 15%;">Akcia</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="readers-table-body">
+                                    <tr>
+                                        <td colspan="4" class="text-muted text-center py-3">Načítavam čitateľov...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. SEKCE: VÝPOŽIČKY (Na celú šírku dole) -->
+        </div>
+
+        <div class="row">
             <div class="col-12">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-dark text-white fw-bold">🔄 Výpožičný systém a vrátenia</div>
-                    <div class="card-body">
-                        <p class="text-muted">Tu budú roletové menu na prepojenie čitateľa s knihou.</p>
+                    <div class="card-header bg-dark text-white fw-bold py-3">🔄 Výpožičný systém a vrátenia</div>
+                    <div class="card-body p-4">
+                        
+                        <form class="row g-3 mb-4 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Vyber čitateľa</label>
+                                <select class="form-select form-select-lg" id="borrow-reader-select" required>
+                                    <option value="">-- Vyber čitateľa zo zoznamu --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold small text-uppercase text-muted">Vyber dostupnú knihu</label>
+                                <select class="form-select form-select-lg" id="borrow-book-select" required>
+                                    <option value="">-- Vyber voľnú knihu --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-dark btn-lg w-100 fw-bold">🔄 Požičať</button>
+                            </div>
+                        </form>
+
+                        <hr class="my-4">
+
+                        <h5 class="fw-bold mb-3 text-dark">Aktuálne vypožičané knihy (Prehľad)</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped align-middle">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th>Kniha</th>
+                                        <th>Čitateľ (Číslo OP)</th>
+                                        <th>Dátum vypožičania</th>
+                                        <th class="text-center" style="width: 15%;">Akcia</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="borrows-table-body">
+                                    <tr>
+                                        <td colspan="4" class="text-muted text-center py-3">Žiadne aktívne výpožičky.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JavaScript pre pokročilé funkcie (napr. dropdowny) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // 1. FUNKCIA: Načítanie kníh a naplnenie dropdownu
+            async function loadBooks() {
+                try {
+                    const response = await fetch('/api/books');
+                    const books = await response.json();
+                    
+                    // A. Vykreslenie do tabuľky kníh
+                    const tbody = document.getElementById('books-table-body');
+                    tbody.innerHTML = '';
+
+                    if (books.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="5" class="text-muted text-center py-3">V knižnici zatiaľ nie sú žiadne knihy.</td></tr>`;                        
+                    } else {
+                        books.forEach(book => {
+                            const tr = document.createElement('tr');
+                            
+                            let statusBadge = '';
+                            let readerInfo = '';
+
+                            if (book.is_borrowed === 1) {
+                                statusBadge = '<span class="badge bg-danger">Požičaná</span>';
+                                const readerName = book.first_name && book.last_name 
+                                    ? `${book.first_name} ${book.last_name}` 
+                                    : 'Neznámy čitateľ';
+                                
+                                readerInfo = `
+                                    <div class="fw-semibold text-dark">👤 ${readerName}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">(OP: ${book.op_number})</div>
+                                `;
+                            } else {
+                                statusBadge = '<span class="badge bg-success">Dostupná</span>';
+                                readerInfo = '<span class="text-muted">—</span>';
+                            }
+
+                            tr.innerHTML = `
+                                <td>${book.id}</td>
+                                <td class="fw-bold text-primary">${book.title}</td>
+                                <td>${book.author}</td>
+                                <td>${statusBadge}</td>
+                                <td>${readerInfo}</td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+
+                    // B. Naplnenie výberového menu (dropdownu) iba voľnými knihami
+                    const bookSelect = document.getElementById('borrow-book-select');
+                    bookSelect.innerHTML = '<option value="">-- Vyber voľnú knihu --</option>';
+                    
+                    books.forEach(book => {
+                        if (book.is_borrowed === 0) {
+                            const option = document.createElement('option');
+                            option.value = book.id;
+                            option.textContent = `ID: ${book.id} - ${book.title} (Autor: ${book.author})`;
+                            bookSelect.appendChild(option);
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Chyba pri načítavaní kníh:', error);
+                }
+            }
+
+            // 2. FUNKCIA: Načítanie čitateľov a naplnenie dropdownu
+            async function loadReaders() {
+                try {
+                    const response = await fetch('/api/readers');
+                    const readers = await response.json();
+                    
+                    // A. Vykreslenie do tabuľky čitateľov
+                    const tbody = document.getElementById('readers-table-body');
+                    tbody.innerHTML = '';
+
+                    if (readers.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="text-muted text-center py-3">Zatiaľ nie sú zaevidovaní žiadni čitatelia.</td></tr>`;
+                    } else {
+                        readers.forEach(reader => {
+                            const tr = document.createElement('tr');
+                            const formattedDate = new Date(reader.birth_date).toLocaleDateString('sk-SK');
+
+                            tr.innerHTML = `
+                                <td class="fw-bold">${reader.op_number}</td>
+                                <td>${reader.first_name} ${reader.last_name}</td>
+                                <td>${formattedDate}</td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-danger delete-reader-btn" data-op="${reader.op_number}">
+                                        🗑️ Zrušiť
+                                    </button>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+
+                    // B. Naplnenie výberového menu čitateľov
+                    const readerSelect = document.getElementById('borrow-reader-select');
+                    readerSelect.innerHTML = '<option value="">-- Vyber čitateľa zo zoznamu --</option>';
+                    
+                    readers.forEach(reader => {
+                        const option = document.createElement('option');
+                        option.value = reader.op_number;
+                        option.textContent = `${reader.first_name} ${reader.last_name} (OP: ${reader.op_number})`;
+                        readerSelect.appendChild(option);
+                    });
+
+                    // Aktivácia tlačidiel pre zmazanie čitateľa
+                    document.querySelectorAll('.delete-reader-btn').forEach(button => {
+                        button.addEventListener('click', async (e) => {
+                            const op = e.currentTarget.getAttribute('data-op');
+                            if (confirm(`Naozaj chcete zrušiť čitateľa s OP: ${op}?`)) {
+                                try {
+                                    const response = await fetch(`/api/readers/${op}`, { method: 'DELETE' });
+                                    const result = await response.json();
+                                    
+                                    if (response.ok) {
+                                        alert(result.message);
+                                        loadReaders();
+                                        loadBooks();
+                                    } else {
+                                        alert('Chyba: ' + result.error);
+                                    }
+                                } catch (err) {
+                                    alert('Nepodarilo sa spojiť so serverom.');
+                                }
+                            }
+                        });
+                    });
+
+                } catch (error) {
+                    console.error('Chyba pri načítavaní čitateľov:', error);
+                }
+            }
+
+            // 3. FUNKCIA: Načítanie aktívnych výpožičiek
+            async function loadBorrows() {
+                try {
+                    const response = await fetch('/api/borrows');
+                    const borrows = await response.json();
+                    
+                    const tbody = document.getElementById('borrows-table-body');
+                    tbody.innerHTML = '';
+
+                    if (borrows.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="text-muted text-center py-3">Žiadne aktívne výpožičky.</td></tr>`;
+                        return;
+                    }
+
+                    borrows.forEach(borrow => {
+                        const tr = document.createElement('tr');
+                        const formattedDate = new Date(borrow.borrow_date).toLocaleDateString('sk-SK');
+
+                        tr.innerHTML = `
+                            <td class="fw-bold text-dark">📖 ${borrow.book_title}</td>
+                            <td>${borrow.first_name} ${borrow.last_name} <span class="text-muted small">(${borrow.op_number})</span></td>
+                            <td>${formattedDate}</td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-danger return-btn" data-id="${borrow.borrow_id}">
+                                    ↩️ Vrátiť knihu
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Aktivácia tlačidiel pre vrátenie knihy
+                    document.querySelectorAll('.return-btn').forEach(button => {
+                        button.addEventListener('click', async (e) => {
+                            const borrowId = e.currentTarget.getAttribute('data-id');
+                            if (confirm('Naozaj chcete túto knihu vrátiť do knižnice?')) {
+                                await returnBook(borrowId);
+                            }
+                        });
+                    });
+
+                } catch (error) {
+                    console.error('Chyba pri načítavaní výpožičiek:', error);
+                }
+            }
+
+            // 4. FUNKCIA: Vykonanie vrátenia knihy
+            async function returnBook(borrowId) {
+                try {
+                    const response = await fetch(`/api/borrows/${borrowId}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        alert('Kniha bola úspešne vrátená!');
+                        loadBooks();
+                        loadReaders();
+                        loadBorrows();
+                    } else {
+                        alert('Chyba pri vracaní knihy.');
+                    }
+                } catch (error) {
+                    console.error('Chyba:', error);
+                }
+            }
+
+            // Prvotné načítanie všetkých dát po otvorení webu
+            loadBooks();
+            loadReaders();
+            loadBorrows();
+
+            // --- EVENT LISTENERY PRE FORMULÁRE ---
+
+            // Formulár pre KNIHY
+            const bookForm = document.querySelector('#books-table-body').closest('.card-body').querySelector('form');
+            bookForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const inputs = bookForm.querySelectorAll('input');
+                const titleInput = inputs[0];
+                const authorInput = inputs[1];
+
+                try {
+                    const response = await fetch('/api/books', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: titleInput.value, author: authorInput.value })
+                    });
+                    if (response.ok) {
+                        alert('Kniha úspešne pridaná do databázy!');
+                        bookForm.reset();
+                        loadBooks();
+                    } else {
+                        const result = await response.json();
+                        alert('Chyba: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Nepodarilo sa spojiť so serverom.');
+                }
+            });
+
+            // Formulár pre ČITATEĽOV
+            const readerForm = document.querySelector('#readers-table-body').closest('.card-body').querySelector('form');
+            readerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const inputs = readerForm.querySelectorAll('input');
+                const opInput = inputs[0];
+                const firstNameInput = inputs[1];
+                const lastNameInput = inputs[2];
+                const birthDateInput = inputs[3];
+
+                try {
+                    const response = await fetch('/api/readers', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            op_number: opInput.value,
+                            first_name: firstNameInput.value,
+                            last_name: lastNameInput.value,
+                            birth_date: birthDateInput.value
+                        })
+                    });
+                    if (response.ok) {
+                        alert('Čitateľ bol úspešne zaevidovaný!');
+                        readerForm.reset();
+                        loadReaders();
+                    } else {
+                        const result = await response.json();
+                        alert('Chyba: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Nepodarilo sa spojiť so serverom.');
+                }
+            });
+
+            // Formulár pre VÝPOŽIČKY
+            const borrowForm = document.querySelector('#borrows-table-body').closest('.card-body').querySelector('form');
+            borrowForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const readerSelect = document.getElementById('borrow-reader-select');
+                const bookSelect = document.getElementById('borrow-book-select');
+
+                try {
+                    const response = await fetch('/api/borrows', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            op_number: readerSelect.value,
+                            book_id: bookSelect.value
+                        })
+                    });
+
+                    if (response.ok) {
+                        alert('Kniha bola úspešne požičaná!');
+                        borrowForm.reset();
+                        loadBooks();
+                        loadReaders();
+                        loadBorrows();
+                    } else {
+                        const result = await response.json();
+                        alert('Chyba: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Nepodarilo sa spojiť so serverom.');
+                }
+            });
+
+        });
+    </script>
 </body>
 </html>

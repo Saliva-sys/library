@@ -48,11 +48,217 @@ db.serialize(() => {
 });
 
 // Testovacia cesta
+//app.get('/', (req, res) => {
+    //res.send('Aplikácia Knižnica pre SunSoft úspešne beží a databáza je pripravená!');
+//});
+
+// Hlavná cesta - načíta náš frontend (index.html)
 app.get('/', (req, res) => {
-    res.send('Aplikácia Knižnica pre SunSoft úspešne beží a databáza je pripravená!');
+    res.sendFile(__dirname + '/public/index.html');
 });
 
 // Spustenie servera na porte 3000
 app.listen(PORT, () => {
     console.log(`Server štartuje! Otvor si v prehliadači: http://localhost:${PORT}`);
+});
+
+// ==========================================
+// 3. API ENDPOINTY (Cesty pre komunikáciu s frontendom)
+// ==========================================
+
+// Pridanie novej knihy do databázy
+app.post('/api/books', (req, res) => {
+    const { title, author } = req.body;
+
+    // Kontrola, či používateľ vyplnil obe políčka
+    if (!title || !author) {
+        return res.status(400).json({ error: 'Názov knihy a autor sú povinné údaje!' });
+    }
+
+    const sql = `INSERT INTO books (title, author) VALUES (?, ?)`;
+    
+    db.run(sql, [title, author], function(err) {
+        if (err) {
+            console.error('Chyba pri ukladaní knihy:', err.message);
+            return res.status(500).json({ error: 'Chyba servera pri ukladaní knihy.' });
+        }
+        
+        // Ak všetko prebehlo v poriadku, pošleme webu späť úspešnú odpoveď a ID novej knihy
+        res.status(201).json({ 
+            message: 'Kniha bola úspešne pridaná!',
+            bookId: this.lastID 
+        });
+    });
+});
+
+// Načítanie všetkých kníh z databázy (vrátane informácie o tom, kto ju má požičanú)
+app.get('/api/books', (req, res) => {
+    // Tento SQL dotaz vytiahne knihy a ak je kniha požičaná, pripojí k nej meno čitateľa z tabuľky borrows a readers
+    const sql = `
+        SELECT k.*, 
+               b.op_number, 
+               c.first_name, 
+               c.last_name
+        FROM books k
+        LEFT JOIN borrows b ON k.id = b.book_id
+        LEFT JOIN readers c ON b.op_number = c.op_number
+    `;
+    
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('Chyba pri načítaní kníh:', err.message);
+            return res.status(500).json({ error: 'Chyba servera pri načítaní kníh.' });
+        }
+        res.json(rows);
+    });
+});
+
+// Pridanie nového čitateľa do databázy
+app.post('/api/readers', (req, res) => {
+    let { op_number, first_name, last_name, birth_date } = req.body;
+
+    // Kontrola, či sú vyplnené všetky políčka
+    if (!op_number || !first_name || !last_name || !birth_date) {
+        return res.status(400).json({ error: 'Všetky údaje o čitateľovi sú povinné!' });
+    }
+
+    // 2. KONTROLA FORMÁTU OP (Očakávame 2 písmená a 6 číslic)
+    // Trim odstráni náhodné medzery na začiatku/konci a ToUpperCase vynúti veľké písmená
+    op_number = op_number.trim().toUpperCase(); 
+    const opRegex = /^[A-Z]{2}\d{6}$/; // Regulárny výraz: 2 písmená (A-Z) a presne 6 čísel (\d{6})
+    
+    if (!opRegex.test(op_number)) {
+        return res.status(400).json({ error: 'Nesprávny formát OP! Musí obsahovať 2 písmená a 6 čísiel (napr. EA123456).' });
+    }
+
+    // 3. AUTOMATICKÉ VEĽKÉ PÍSMENÁ pre meno a priezvisko
+    // Vezme prvé písmeno, dá ho na veľké + pridá zvyšok slova na malé
+    const formatName = (name) => name.trim().charAt(0).toUpperCase() + name.trim().slice(1).toLowerCase();
+    
+    first_name = formatName(first_name);
+    last_name = formatName(last_name);
+
+    const sql = `INSERT INTO readers (op_number, first_name, last_name, birth_date) VALUES (?, ?, ?, ?)`;
+    
+    db.run(sql, [op_number, first_name, last_name, birth_date], function(err) {
+        if (err) {
+            console.error('Chyba pri ukladaní čitateľa:', err.message);
+            // Ak zadáme číslo OP, ktoré už v databáze je, SQLite vyhodí chybu (lebo op_number je PRIMARY KEY)
+            if (err.message.includes('UNIQUE')) {
+                return res.status(400).json({ error: 'Čitateľ s týmto číslom OP už je zaevidovaný!' });
+            }
+            return res.status(500).json({ error: 'Chyba servera pri ukladaní čitateľa.' });
+        }
+        
+        res.status(201).json({ message: 'Čitateľ bol úspešne zaevidovaný!' });
+    });
+});
+
+// Načítanie všetkých čitateľov z databázy
+app.get('/api/readers', (req, res) => {
+    const sql = `SELECT * FROM readers`;
+    
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('Chyba pri načítaní čitateľov:', err.message);
+            return res.status(500).json({ error: 'Chyba servera pri načítaní čitateľov.' });
+        }
+        res.json(rows);
+    });
+});
+
+// 1. Vytvorenie novej výpožičky
+app.post('/api/borrows', (req, res) => {
+    const { op_number, book_id } = req.body;
+
+    if (!op_number || !book_id) {
+        return res.status(400).json({ error: 'Musíte vybrať čitateľa aj knihu!' });
+    }
+
+    const borrow_date = new Date().toISOString().split('T')[0]; // Dnešný dátum v tvare YYYY-MM-DD
+
+    // Krok A: Zapíšeme výpožičku do tabuľky borrows
+    const sqlBorrow = `INSERT INTO borrows (op_number, book_id, borrow_date) VALUES (?, ?, ?)`;
+    
+    db.run(sqlBorrow, [op_number, book_id, borrow_date], function(err) {
+        if (err) {
+            console.error('Chyba pri zápise výpožičky:', err.message);
+            return res.status(500).json({ error: 'Chyba servera pri vytváraní výpožičky.' });
+        }
+
+        // Krok B: Aktualizujeme stav knihy v tabuľke books na 1 (požičaná)
+        const sqlUpdateBook = `UPDATE books SET is_borrowed = 1 WHERE id = ?`;
+        db.run(sqlUpdateBook, [book_id], (updateErr) => {
+            if (updateErr) {
+                console.error('Chyba pri aktualizácii stavu knihy:', updateErr.message);
+            }
+            res.status(201).json({ message: 'Kniha bola úspešne požičaná!' });
+        });
+    });
+});
+
+// 2. Načítanie všetkých aktívnych výpožičiek (spájame 3 tabuľky cez JOIN)
+app.get('/api/borrows', (req, res) => {
+    const sql = `
+        SELECT b.id as borrow_id, b.borrow_date, b.op_number,
+               k.title as book_title, k.id as book_id,
+               c.first_name, c.last_name
+        FROM borrows b
+        JOIN books k ON b.book_id = k.id
+        JOIN readers c ON b.op_number = c.op_number
+    `;
+
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error('Chyba pri načítaní výpožičiek:', err.message);
+            return res.status(500).json({ error: 'Chyba servera pri načítaní prehľadu.' });
+        }
+        res.json(rows);
+    });
+});
+
+// 3. Vrátenie knihy (vymazanie výpožičky a uvoľnenie knihy)
+app.delete('/api/borrows/:id', (req, res) => {
+    const borrowId = req.params.id;
+
+    // Krok A: Najprv zistíme, o ktorú knihu ide, aby sme ju mohli uvoľniť
+    db.get(`SELECT book_id FROM borrows WHERE id = ?`, [borrowId], (err, row) => {
+        if (err || !row) {
+            return res.status(404).json({ error: 'Výpožička sa nenašla.' });
+        }
+
+        const bookId = row.book_id;
+
+        // Krok B: Vymažeme záznam z tabuľky borrows
+        db.run(`DELETE FROM borrows WHERE id = ?`, [borrowId], (delErr) => {
+            if (delErr) {
+                return res.status(500).json({ error: 'Chyba pri vracaní knihy.' });
+            }
+
+            // Krok C: Nastavíme knihu späť ako dostupnú (is_borrowed = 0)
+            db.run(`UPDATE books SET is_borrowed = 0 WHERE id = ?`, [bookId], (upErr) => {
+                res.json({ message: 'Kniha bola úspešne vrátená do knižnice!' });
+            });
+        });
+    });
+});
+
+// Vymazanie čitateľa z databázy
+app.delete('/api/readers/:op', (req, res) => {
+    const opNumber = req.params.op;
+
+    // Najprv skontrolujeme, či nemá čitateľ náhodou požičanú knihu
+    db.get(`SELECT id FROM borrows WHERE op_number = ?`, [opNumber], (err, row) => {
+        if (row) {
+            return res.status(400).json({ error: 'Nemožno vymazať čitateľa, ktorý má aktuálne požičanú knihu!' });
+        }
+
+        // Ak nemá žiadnu výpožičku, bezpečne ho vymažeme
+        db.run(`DELETE FROM readers WHERE op_number = ?`, [opNumber], (delErr) => {
+            if (delErr) {
+                return res.status(500).json({ error: 'Chyba servera pri mazaní čitateľa.' });
+            }
+            res.json({ message: 'Čitateľ bol úspešne odstránený zo systému.' });
+        });
+    });
 });
