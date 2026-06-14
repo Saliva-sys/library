@@ -105,7 +105,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Spustenie servera na porte 3000
+// Spustenie servera na porte 3000/3001
 app.listen(PORT, () => {
     console.log(`Server štartuje! Otvor si v prehliadači: http://localhost:${PORT}`);
 });
@@ -188,6 +188,7 @@ app.post('/api/readers', (req, res) => {
     
     first_name = formatName(first_name);
     last_name = formatName(last_name);
+
     // Birth date validation (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(birth_date) || Number.isNaN(Date.parse(birth_date))) {

@@ -1,5 +1,5 @@
 // Simple end-to-end test using global fetch (Node 18+)
-const base = 'http://localhost:3000';
+const base = 'http://localhost:3001';
 
 async function req(path, opts) {
   const res = await fetch(base + path, opts);

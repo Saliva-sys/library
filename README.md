@@ -7,8 +7,10 @@ Small app for library administration
   - [Modernization suggestions](#modernization-suggestions)
 - [How To](#how-to)
   - [Run & test](#run--test)
+  - [Quick API checks (examples)](#quick-api-checks-examples)
   - [Start / Stop the server](#start--stop-the-server)
-- [Demo auth mode](#demo-auth-mode)
+- [Run different modes](#run-different-modes)
+  - [Demo auth mode](#demo-auth-mode)
   - [Run demo mode](#run-demo-mode)
   - [Run normal mode without auth on a different port](#run-normal-mode-without-auth-on-a-different-port)
   - [Environment variables](#environment-variables)
@@ -20,7 +22,6 @@ Small app for library administration
 
 ### Modernization suggestions
 
-- Move frontend JavaScript into a separate file (`public/app.js`) instead of keeping it inline in `public/index.html`.
 - Consider using a templating layer or frontend framework for larger apps: e.g. EJS, Pug, React, Vue, or Svelte.
 - Add authentication and CSRF protection for any real production use.
 - Validate all input server-side and deploy behind HTTPS if the app becomes public-facing.
@@ -37,17 +38,30 @@ npm start
 # then open http://localhost:3000
 ```
 
-Quick API checks (examples):
+### Quick API checks (examples):
 
+**PowerShell:**
 ```bash
 # Add a book
-curl -X POST -H "Content-Type: application/json" -d '{"title":"Test","author":"Autor"}' http://localhost:3000/api/books
+curl -X POST -H "Content-Type: application/json" -d '{"title":"Test","author":"Autor"}' http://localhost:3001/api/books
 
 # Add a reader
-curl -X POST -H "Content-Type: application/json" -d '{"op_number":"EA123456","first_name":"Ján","last_name":"Novák","birth_date":"1990-01-01"}' http://localhost:3000/api/readers
+curl -X POST -H "Content-Type: application/json" -d '{"op_number":"EA123456","first_name":"Ján","last_name":"Novák","birth_date":"1990-01-01"}' http://localhost:3001/api/readers
 
 # Borrow a book (use actual bookId from response)
-curl -X POST -H "Content-Type: application/json" -d '{"op_number":"EA123456","book_id":1}' http://localhost:3000/api/borrows
+curl -X POST -H "Content-Type: application/json" -d '{"op_number":"EA123456","book_id":1}' http://localhost:3001/api/borrows
+```
+
+**CMD (if PowerShell syntax doesn't work, use this instead):**
+```bash
+# Add a book
+curl -X POST -H "Content-Type: application/json" -d "{\"title\":\"Test\",\"author\":\"Autor\"}" http://localhost:3001/api/books
+
+# Add a reader
+curl -X POST -H "Content-Type: application/json" -d "{\"op_number\":\"EA123456\",\"first_name\":\"Ján\",\"last_name\":\"Novák\",\"birth_date\":\"1990-01-01\"}" http://localhost:3001/api/readers
+
+# Borrow a book (use actual bookId from response)
+curl -X POST -H "Content-Type: application/json" -d "{\"op_number\":\"EA123456\",\"book_id\":1}" http://localhost:3001/api/borrows
 ```
 
 Notes:
@@ -76,7 +90,9 @@ npm run test:e2e
 
 If you start the server in one terminal and close that terminal, the server will stop — restart with `npm start`.
 
-## Demo auth mode
+## Run different modes
+
+### Demo auth mode
 
 The app now supports an optional demo authentication mode: the middleware is enabled only when `DEMO_AUTH=true`.
 
