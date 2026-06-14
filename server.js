@@ -2,7 +2,7 @@ const path = require('path');
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose(); // Importujeme SQLite3
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 // Nastavenie, aby server vedel spracovať formuláre a JSON dáta
 app.use(express.urlencoded({ extended: true }));
@@ -14,6 +14,43 @@ app.use((req, res, next) => {
     res.setHeader('Referrer-Policy', 'no-referrer');
     next();
 });
+
+// --- Demo Basic Auth middleware (enabled only when DEMO_AUTH=true) ---
+// To enable demo auth set DEMO_AUTH=true. Credentials can be set via
+// DEMO_USER and DEMO_PASS. This is for presentation/demo use only.
+if (process.env.DEMO_AUTH === 'true') {
+    const demoUser = process.env.DEMO_USER || 'demo';
+    const demoPass = process.env.DEMO_PASS || 'demo123';
+
+    app.use((req, res, next) => {
+        const auth = req.headers.authorization;
+        if (!auth) {
+            res.setHeader('WWW-Authenticate', 'Basic realm="Demo"');
+            return res.status(401).send('Auth required');
+        }
+
+        const parts = auth.split(' ');
+        if (parts.length !== 2 || parts[0] !== 'Basic') {
+            res.setHeader('WWW-Authenticate', 'Basic realm="Demo"');
+            return res.status(401).send('Auth required');
+        }
+
+        const token = parts[1];
+        let creds = '';
+        try {
+            creds = Buffer.from(token, 'base64').toString('utf8');
+        } catch (e) {
+            res.setHeader('WWW-Authenticate', 'Basic realm="Demo"');
+            return res.status(401).send('Invalid auth token');
+        }
+
+        const [user, pass] = creds.split(':');
+        if (user === demoUser && pass === demoPass) return next();
+
+        res.setHeader('WWW-Authenticate', 'Basic realm="Demo"');
+        return res.status(401).send('Invalid credentials');
+    });
+}
 
 app.use(express.static('public'));
 
@@ -86,19 +123,22 @@ app.post('/api/books', (req, res) => {
         return res.status(400).json({ error: 'Názov knihy a autor sú povinné údaje!' });
     }
 
+    const t = title.trim();
+    const a = author.trim();
+    if (t.length === 0 || a.length === 0) {
+        return res.status(400).json({ error: 'Názov knihy a autor musia obsahovať platné znaky.' });
+    }
+    if (t.length > 200 || a.length > 200) {
+        return res.status(400).json({ error: 'Názov alebo autor sú príliš dlhí (max 200 znakov).' });
+    }
+
     const sql = `INSERT INTO books (title, author) VALUES (?, ?)`;
-    
-    db.run(sql, [title, author], function(err) {
+    db.run(sql, [t, a], function(err) {
         if (err) {
             console.error('Chyba pri ukladaní knihy:', err.message);
             return res.status(500).json({ error: 'Chyba servera pri ukladaní knihy.' });
         }
-        
-        // Ak všetko prebehlo v poriadku, pošleme webu späť úspešnú odpoveď a ID novej knihy
-        res.status(201).json({ 
-            message: 'Kniha bola úspešne pridaná!',
-            bookId: this.lastID 
-        });
+        res.status(201).json({ message: 'Kniha bola úspešne pridaná!', bookId: this.lastID });
     });
 });
 
@@ -148,9 +188,17 @@ app.post('/api/readers', (req, res) => {
     
     first_name = formatName(first_name);
     last_name = formatName(last_name);
+    // Birth date validation (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(birth_date) || Number.isNaN(Date.parse(birth_date))) {
+        return res.status(400).json({ error: 'Neplatný formát dátumu narodenia. Použite YYYY-MM-DD.' });
+    }
+
+    if (first_name.length > 100 || last_name.length > 100) {
+        return res.status(400).json({ error: 'Meno alebo priezvisko sú príliš dlhé (max 100 znakov).' });
+    }
 
     const sql = `INSERT INTO readers (op_number, first_name, last_name, birth_date) VALUES (?, ?, ?, ?)`;
-    
     db.run(sql, [op_number, first_name, last_name, birth_date], function(err) {
         if (err) {
             console.error('Chyba pri ukladaní čitateľa:', err.message);
@@ -160,7 +208,6 @@ app.post('/api/readers', (req, res) => {
             }
             return res.status(500).json({ error: 'Chyba servera pri ukladaní čitateľa.' });
         }
-        
         res.status(201).json({ message: 'Čitateľ bol úspešne zaevidovaný!' });
     });
 });
@@ -192,44 +239,62 @@ app.post('/api/borrows', (req, res) => {
     }
 
     const borrow_date = new Date().toISOString().split('T')[0]; // Dnešný dátum v tvare YYYY-MM-DD
-
-    const sqlCheckReader = `SELECT op_number FROM readers WHERE op_number = ?`;
-    db.get(sqlCheckReader, [op_number], (readerErr, readerRow) => {
-        if (readerErr) {
-            console.error('Chyba pri overovaní čitateľa:', readerErr.message);
-            return res.status(500).json({ error: 'Chyba servera pri overení čitateľa.' });
-        }
-        if (!readerRow) {
-            return res.status(404).json({ error: 'Vybraný čitateľ sa nenašiel.' });
+    // Použijeme transakciu, aby sme zabránili nekonzistentnému stavu
+    db.run('BEGIN TRANSACTION', (beginErr) => {
+        if (beginErr) {
+            console.error('Chyba pri začatí transakcie:', beginErr.message);
+            return res.status(500).json({ error: 'Chyba servera.' });
         }
 
-        const sqlCheckBook = `SELECT is_borrowed FROM books WHERE id = ?`;
-        db.get(sqlCheckBook, [parsedBookId], (checkErr, row) => {
-            if (checkErr) {
-                console.error('Chyba pri kontrole stavu knihy:', checkErr.message);
-                return res.status(500).json({ error: 'Chyba servera pri overení knihy.' });
+        db.get(`SELECT op_number FROM readers WHERE op_number = ?`, [op_number], (readerErr, readerRow) => {
+            if (readerErr) {
+                console.error('Chyba pri overovaní čitateľa:', readerErr.message);
+                db.run('ROLLBACK', () => {});
+                return res.status(500).json({ error: 'Chyba servera pri overení čitateľa.' });
             }
-            if (!row) {
-                return res.status(404).json({ error: 'Vybraná kniha sa nenašla.' });
-            }
-            if (row.is_borrowed === 1) {
-                return res.status(400).json({ error: 'Táto kniha je už požičaná.' });
+            if (!readerRow) {
+                db.run('ROLLBACK', () => {});
+                return res.status(404).json({ error: 'Vybraný čitateľ sa nenašiel.' });
             }
 
-            const sqlBorrow = `INSERT INTO borrows (op_number, book_id, borrow_date) VALUES (?, ?, ?)`;
-            db.run(sqlBorrow, [op_number, parsedBookId, borrow_date], function(err) {
-                if (err) {
-                    console.error('Chyba pri zápise výpožičky:', err.message);
-                    return res.status(500).json({ error: 'Chyba servera pri vytváraní výpožičky.' });
+            db.get(`SELECT is_borrowed FROM books WHERE id = ?`, [parsedBookId], (checkErr, row) => {
+                if (checkErr) {
+                    console.error('Chyba pri kontrole stavu knihy:', checkErr.message);
+                    db.run('ROLLBACK', () => {});
+                    return res.status(500).json({ error: 'Chyba servera pri overení knihy.' });
+                }
+                if (!row) {
+                    db.run('ROLLBACK', () => {});
+                    return res.status(404).json({ error: 'Vybraná kniha sa nenašla.' });
+                }
+                if (row.is_borrowed === 1) {
+                    db.run('ROLLBACK', () => {});
+                    return res.status(400).json({ error: 'Táto kniha je už požičaná.' });
                 }
 
-                const sqlUpdateBook = `UPDATE books SET is_borrowed = 1 WHERE id = ?`;
-                db.run(sqlUpdateBook, [parsedBookId], (updateErr) => {
-                    if (updateErr) {
-                        console.error('Chyba pri aktualizácii stavu knihy:', updateErr.message);
-                        return res.status(500).json({ error: 'Chyba servera pri aktualizácii stavu knihy.' });
+                db.run(`INSERT INTO borrows (op_number, book_id, borrow_date) VALUES (?, ?, ?)`, [op_number, parsedBookId, borrow_date], function(insertErr) {
+                    if (insertErr) {
+                        console.error('Chyba pri zápise výpožičky:', insertErr.message);
+                        db.run('ROLLBACK', () => {});
+                        return res.status(500).json({ error: 'Chyba servera pri vytváraní výpožičky.' });
                     }
-                    res.status(201).json({ message: 'Kniha bola úspešne požičaná!' });
+
+                    db.run(`UPDATE books SET is_borrowed = 1 WHERE id = ?`, [parsedBookId], function(updateErr) {
+                        if (updateErr) {
+                            console.error('Chyba pri aktualizácii stavu knihy:', updateErr.message);
+                            db.run('ROLLBACK', () => {});
+                            return res.status(500).json({ error: 'Chyba servera pri aktualizácii stavu knihy.' });
+                        }
+
+                        db.run('COMMIT', (commitErr) => {
+                            if (commitErr) {
+                                console.error('Chyba pri commit transakcie:', commitErr.message);
+                                db.run('ROLLBACK', () => {});
+                                return res.status(500).json({ error: 'Chyba servera pri ukladaní výpožičky.' });
+                            }
+                            res.status(201).json({ message: 'Kniha bola úspešne požičaná!' });
+                        });
+                    });
                 });
             });
         });
@@ -273,19 +338,36 @@ app.delete('/api/borrows/:id', (req, res) => {
         }
 
         const bookId = row.book_id;
-
-        db.run(`DELETE FROM borrows WHERE id = ?`, [borrowId], (delErr) => {
-            if (delErr) {
-                console.error('Chyba pri mazaní výpožičky:', delErr.message);
-                return res.status(500).json({ error: 'Chyba pri vracaní knihy.' });
+        // Transakcia: odstránime záznam o výpožičke a zároveň uvoľníme knihu
+        db.run('BEGIN TRANSACTION', (beginErr) => {
+            if (beginErr) {
+                console.error('Chyba pri začatí transakcie (vrátenie):', beginErr.message);
+                return res.status(500).json({ error: 'Chyba servera.' });
             }
 
-            db.run(`UPDATE books SET is_borrowed = 0 WHERE id = ?`, [bookId], (upErr) => {
-                if (upErr) {
-                    console.error('Chyba pri aktualizácii stavu knihy po vrátení:', upErr.message);
-                    return res.status(500).json({ error: 'Chyba servera pri uvoľňovaní knihy.' });
+            db.run(`DELETE FROM borrows WHERE id = ?`, [borrowId], function(delErr) {
+                if (delErr) {
+                    console.error('Chyba pri mazaní výpožičky:', delErr.message);
+                    db.run('ROLLBACK', () => {});
+                    return res.status(500).json({ error: 'Chyba pri vracaní knihy.' });
                 }
-                res.json({ message: 'Kniha bola úspešne vrátená do knižnice!' });
+
+                db.run(`UPDATE books SET is_borrowed = 0 WHERE id = ?`, [bookId], function(upErr) {
+                    if (upErr) {
+                        console.error('Chyba pri aktualizácii stavu knihy po vrátení:', upErr.message);
+                        db.run('ROLLBACK', () => {});
+                        return res.status(500).json({ error: 'Chyba servera pri uvoľňovaní knihy.' });
+                    }
+
+                    db.run('COMMIT', (commitErr) => {
+                        if (commitErr) {
+                            console.error('Chyba pri commit transakcie (vrátenie):', commitErr.message);
+                            db.run('ROLLBACK', () => {});
+                            return res.status(500).json({ error: 'Chyba servera pri ukladani zmeny.' });
+                        }
+                        res.json({ message: 'Kniha bola úspešne vrátená do knižnice!' });
+                    });
+                });
             });
         });
     });
@@ -312,5 +394,62 @@ app.delete('/api/readers/:op', (req, res) => {
             }
             res.json({ message: 'Čitateľ bol úspešne odstránený zo systému.' });
         });
+    });
+});
+
+// Úprava existujúcej knihy
+app.put('/api/books/:id', (req, res) => {
+    const bookId = parseInt(req.params.id, 10);
+    const { title, author } = req.body;
+
+    if (Number.isNaN(bookId) || !title || !author) {
+        return res.status(400).json({ error: 'Potrebujete ID knihy a nové údaje (názov + autor).' });
+    }
+
+    const sql = `UPDATE books SET title = ?, author = ? WHERE id = ?`;
+    db.run(sql, [title.trim(), author.trim(), bookId], function(err) {
+        if (err) {
+            console.error('Chyba pri editácii knihy:', err.message);
+            return res.status(500).json({ error: 'Chyba servera pri aktualizácii knihy.' });
+        }
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Kniha sa nenašla.' });
+        }
+        res.json({ message: 'Kniha bola úspešne upravená.' });
+    });
+});
+
+// Úprava existujúceho čitateľa
+app.put('/api/readers/:op', (req, res) => {
+    const opNumber = req.params.op;
+    let { first_name, last_name, birth_date } = req.body;
+
+    if (!first_name || !last_name || !birth_date) {
+        return res.status(400).json({ error: 'Všetky údaje o čitateľovi sú povinné!' });
+    }
+
+    const formatName = (name) => name.trim().charAt(0).toUpperCase() + name.trim().slice(1).toLowerCase();
+    first_name = formatName(first_name);
+    last_name = formatName(last_name);
+    // Validate birth_date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(birth_date) || Number.isNaN(Date.parse(birth_date))) {
+        return res.status(400).json({ error: 'Neplatný formát dátumu narodenia. Použite YYYY-MM-DD.' });
+    }
+
+    if (first_name.length > 100 || last_name.length > 100) {
+        return res.status(400).json({ error: 'Meno alebo priezvisko sú príliš dlhé (max 100 znakov).' });
+    }
+
+    const sql = `UPDATE readers SET first_name = ?, last_name = ?, birth_date = ? WHERE op_number = ?`;
+    db.run(sql, [first_name, last_name, birth_date, opNumber], function(err) {
+        if (err) {
+            console.error('Chyba pri editácii čitateľa:', err.message);
+            return res.status(500).json({ error: 'Chyba servera pri aktualizácii čitateľa.' });
+        }
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Čitateľ sa nenašiel.' });
+        }
+        res.json({ message: 'Čitateľ bol úspešne upravený.' });
     });
 });

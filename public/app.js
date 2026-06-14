@@ -2,17 +2,29 @@ const initApp = () => {
     const bookForm = document.getElementById('book-form');
     const readerForm = document.getElementById('reader-form');
     const borrowForm = document.getElementById('borrow-form');
+    const editBookForm = document.getElementById('edit-book-form');
+    const editReaderForm = document.getElementById('edit-reader-form');
     const toastEl = document.getElementById('notification-toast');
     const toastBody = toastEl ? toastEl.querySelector('.toast-body') : null;
     let toast = null;
+    let editBookModal = null;
+    let editReaderModal = null;
 
     try {
         if (window.bootstrap && toastEl) {
             toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 3000 });
         }
+        if (window.bootstrap) {
+            const editBookEl = document.getElementById('editBookModal');
+            const editReaderEl = document.getElementById('editReaderModal');
+            if (editBookEl) editBookModal = new bootstrap.Modal(editBookEl);
+            if (editReaderEl) editReaderModal = new bootstrap.Modal(editReaderEl);
+        }
     } catch (err) {
-        console.warn('Toast initialization failed, falling back to alert.', err);
-        toast = null;
+        console.warn('Bootstrap initialization failed:', err);
+        toast = toast || null;
+        editBookModal = editBookModal || null;
+        editReaderModal = editReaderModal || null;
     }
 
     const showToast = (message, type = 'success') => {
@@ -41,6 +53,24 @@ const initApp = () => {
         }[char]));
 
     const formatDate = (dateString) => new Date(dateString).toLocaleDateString('sk-SK');
+
+    const openBookEditor = (book) => {
+        if (!editBookForm || !editBookModal) return;
+        editBookForm.querySelector('input[name="id"]').value = book.id;
+        editBookForm.querySelector('input[name="title"]').value = book.title;
+        editBookForm.querySelector('input[name="author"]').value = book.author;
+        editBookModal.show();
+    };
+
+    const openReaderEditor = (reader) => {
+        if (!editReaderForm || !editReaderModal) return;
+        editReaderForm.querySelector('input[name="op_number"]').value = reader.op_number;
+        editReaderForm.querySelector('#edit-reader-op-display').value = reader.op_number;
+        editReaderForm.querySelector('input[name="first_name"]').value = reader.first_name;
+        editReaderForm.querySelector('input[name="last_name"]').value = reader.last_name;
+        editReaderForm.querySelector('input[name="birth_date"]').value = reader.birth_date;
+        editReaderModal.show();
+    };
 
     const loadBooks = async () => {
         try {
@@ -84,8 +114,27 @@ const initApp = () => {
                     <td class="text-secondary">${escapeHTML(book.author)}</td>
                     <td>${statusBadge}</td>
                     <td class="pe-4">${readerInfo}</td>
+                    <td class="text-center pe-4">
+                        <button class="btn btn-sm btn-outline-primary edit-book-btn"
+                            data-id="${book.id}"
+                            data-title="${escapeHTML(book.title)}"
+                            data-author="${escapeHTML(book.author)}">
+                            ✏️ Upraviť
+                        </button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
+            });
+
+            document.querySelectorAll('.edit-book-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const book = {
+                        id: button.getAttribute('data-id'),
+                        title: button.getAttribute('data-title'),
+                        author: button.getAttribute('data-author')
+                    };
+                    openBookEditor(book);
+                });
             });
 
             // Aktualizácia rozbaľovacieho zoznamu (selectu) pre výpožičky
@@ -129,6 +178,13 @@ const initApp = () => {
                         <td>${safeFirst} ${safeLast}</td>
                         <td class="text-secondary">${formattedDate}</td>
                         <td class="text-center pe-4">
+                            <button class="btn btn-sm btn-outline-primary edit-reader-btn"
+                                data-op="${safeOp}"
+                                data-first="${safeFirst}"
+                                data-last="${safeLast}"
+                                data-birth="${reader.birth_date}">
+                                ✏️ Upraviť
+                            </button>
                             <button class="btn btn-sm btn-outline-danger delete-reader-btn" data-op="${safeOp}">
                                 🗑️ Zrušiť
                             </button>
@@ -137,6 +193,18 @@ const initApp = () => {
                     tbody.appendChild(tr);
                 });
             }
+
+            document.querySelectorAll('.edit-reader-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const reader = {
+                        op_number: button.getAttribute('data-op'),
+                        first_name: button.getAttribute('data-first'),
+                        last_name: button.getAttribute('data-last'),
+                        birth_date: button.getAttribute('data-birth')
+                    };
+                    openReaderEditor(reader);
+                });
+            });
 
             const readerSelect = document.getElementById('borrow-reader-select');
             readerSelect.innerHTML = '<option value="">-- Vyber čitateľa zo zoznamu --</option>';
@@ -299,6 +367,63 @@ const initApp = () => {
             showToast('Nepodarilo sa spojiť so serverom.', 'error');
         }
     });
+
+    if (editBookForm) {
+        editBookForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = editBookForm.querySelector('input[name="id"]').value;
+            const title = editBookForm.querySelector('input[name="title"]').value.trim();
+            const author = editBookForm.querySelector('input[name="author"]').value.trim();
+
+            try {
+                const response = await fetch(`/api/books/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, author })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showToast(result.message || 'Kniha bola upravená.');
+                    editBookModal?.hide();
+                    loadBooks();
+                } else {
+                    showToast(result.error || 'Chyba pri editácii knihy.', 'error');
+                }
+            } catch (error) {
+                console.error('Chyba pri editácii knihy:', error);
+                showToast('Nepodarilo sa spojiť so serverom.', 'error');
+            }
+        });
+    }
+
+    if (editReaderForm) {
+        editReaderForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const op = editReaderForm.querySelector('input[name="op_number"]').value;
+            const first_name = editReaderForm.querySelector('input[name="first_name"]').value.trim();
+            const last_name = editReaderForm.querySelector('input[name="last_name"]').value.trim();
+            const birth_date = editReaderForm.querySelector('input[name="birth_date"]').value;
+
+            try {
+                const response = await fetch(`/api/readers/${op}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ first_name, last_name, birth_date })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showToast(result.message || 'Čitateľ bol upravený.');
+                    editReaderModal?.hide();
+                    loadReaders();
+                } else {
+                    showToast(result.error || 'Chyba pri editácii čitateľa.', 'error');
+                }
+            } catch (error) {
+                console.error('Chyba pri editácii čitateľa:', error);
+                showToast('Nepodarilo sa spojiť so serverom.', 'error');
+            }
+        });
+    }
 
     borrowForm.addEventListener('submit', async (e) => {
         e.preventDefault();
