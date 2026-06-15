@@ -22,6 +22,18 @@ body {
 .table { 
     margin-bottom: 0; 
 }
+
+.table-responsive {
+    max-height: 800px;
+    overflow-y: auto; /* Vertikálny scrollbar, ak je dát veľa */
+}
+
+.table-responsive thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10; /* Zabezpečí, aby texty riadkov nepretekali POPRED hlavičku */
+    background-color: rgb(202, 202, 202) !important; /* Prispôsob farbe tvojej .table-light */
+}
 .table th {
     font-weight: 600;
     text-transform: uppercase;
@@ -32,7 +44,11 @@ body {
     border-radius: 8px;
     border: 1px solid #cbd5e1;
     padding: 0.6rem 0.9rem;
-    font-size: 0.95rem;
+    font-size: 0.8rem;
+}
+
+.form-control::placeholder, .form-select::placeholder {
+    font-size: 0.8rem;
 }
 .form-control:focus, .form-select:focus {
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
@@ -56,3 +72,16 @@ body {
     font-weight: 600;
     border-radius: 6px;
 }
+
+div .form-control[type="date"] {
+    font-size: 0.8rem;
+}
+
+.table td .btn {
+    padding: 0.25rem 0.4rem; /* Minimálny padding, aby boli okolo ikonky pekné rovnomerné okraje */
+    font-size: 0.85rem;      /* Veľkosť ikonky */
+    line-height: 1;          /* Vycentruje ikonku presne na stred tlačidla */
+    border-radius: 6px;      /* Jemné zaoblenie */
+    margin: 0 2px;           /* Malá medzera medzi ceruzkou a košom, aby neboli zlepené */
+}
+

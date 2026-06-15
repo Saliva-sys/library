@@ -12,18 +12,19 @@
 
     <div class="container my-5">
         
-        <!-- Hlavný nadpis (Jumbotron) -->
+        <!-- Main application header (Jumbotron component) -->
         <div class="p-5 mb-5 text-white rounded-3 shadow jumbotron-custom">
             <div class="d-flex align-items-center gap-3 mb-2">
                 <span class="fs-1">📚</span>
                 <h1 class="display-5 fw-bold m-0">Systém Knižnica pre SunSoft</h1>
             </div>
-            <p class="col-md-8 fs-5 text-muted mb-0">Interná aplikácia na pokročilú evidenciu kníh, kartotéku čitateľov a správu aktívnych výpožičiek.</p>
+            <p class="col-md-9 fs-5 mb-0" style="color: rgba(255, 255, 255, 0.25);">Interná aplikácia na pokročilú evidenciu kníh, kartotéku čitateľov a správu aktívnych výpožičiek.</p>
         </div>
 
-        <!-- HLAVNÝ RAD: FORMULÁRE NA PRIDÁVANIE (Kompaktné vedľa seba) -->
+        <!-- Management section: Data entry forms for books and readers -->
         <div class="row g-4 mb-5">
-            <!-- Nová kniha -->
+
+            <!-- Book registration form with title and author validation -->
             <div class="col-lg-6">
                 <div class="card shadow-sm border-start border-primary border-4">
                     <div class="card-header bg-white text-dark fw-bold py-3 border-0">
@@ -34,11 +35,11 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold small text-secondary">Názov knihy</label>
-                                    <input type="text" class="form-control" name="title" placeholder="Napr. Kód neznámy" required>
+                                    <input type="text" class="form-control" name="title" placeholder="Napr. Da Vinciho kód" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold small text-secondary">Autor</label>
-                                    <input type="text" class="form-control" name="author" placeholder="Napr. Ján Kustra" required>
+                                    <input type="text" class="form-control" name="author" placeholder="Napr. Dan Brown" required>
                                 </div>
                                 <div class="col-12">
                                     <button type="submit" class="btn btn-primary w-100 fw-bold">➕ Pridať knihu</button>
@@ -49,7 +50,7 @@
                 </div>
             </div>
 
-            <!-- Nový čitateľ -->
+            <!-- Data entry form: Register new reader with input validation -->
             <div class="col-lg-6">
                 <div class="card shadow-sm border-start border-success border-4">
                     <div class="card-header bg-white text-dark fw-bold py-3 border-0">
@@ -84,71 +85,8 @@
             </div>
         </div>
 
-        <!-- 2. RAD: PREHĽADOVÉ TABUĽKY (Vedľa seba, dominantná časť webu) -->
-        <div class="row g-4 mb-5">
-            <!-- Tabuľka kníh -->
-            <div class="col-xl-7 col-lg-12">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-dark text-white fw-bold py-3 d-flex justify-content-between align-items-center">
-                        <span>📋 Zoznam kníh v knižnici</span>
-                        <span class="badge bg-primary">Knihy</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light text-secondary">
-                                    <tr>
-                                        <th style="width: 8%;" class="ps-4">ID</th>
-                                        <th style="width: 30%;">Názov</th>
-                                        <th style="width: 22%;">Autor</th>
-                                        <th style="width: 13%;">Stav</th>
-                                        <th style="width: 17%;">Požičal si</th>
-                                        <th style="width: 10%;" class="text-center pe-4">Akcia</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="books-table-body" class="border-top-0">
-                                    <tr>
-                                        <td colspan="6" class="text-muted text-center py-4 ps-4">Načítavam knihy...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tabuľka čitateľov -->
-            <div class="col-xl-5 col-lg-12">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-dark text-white fw-bold py-3 d-flex justify-content-between align-items-center">
-                        <span>📇 Kartotéka čitateľov</span>
-                        <span class="badge bg-success">Čitatelia</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light text-secondary">
-                                    <tr>
-                                        <th class="ps-4">Číslo OP</th>
-                                        <th>Meno a priezvisko</th>
-                                        <th>Narodený(á)</th>
-                                        <th class="text-center pe-4">Akcia</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="readers-table-body">
-                                    <tr>
-                                        <td colspan="4" class="text-muted text-center py-4 ps-4">Načítavam čitateľov...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 3. RAD: VÝPOŽIČNÝ SYSTÉM (Elegantný spodný panel) -->
-        <div class="row">
+        <!-- Circulation desk: Loan management and active rental tracker -->
+        <div class="row mb-5">
             <div class="col-12">
                 <div class="card shadow border-top border-primary border-4">
                     <div class="card-header bg-white text-dark fw-bold py-4 px-4 border-0">
@@ -156,7 +94,7 @@
                     </div>
                     <div class="card-body px-4 pb-4 pt-0">
                         
-                        <!-- Formulár pre výpožičku -->
+                        <!-- Interaction form for establishing a new rental transaction -->
                         <form id="borrow-form" class="row g-3 align-items-end bg-light p-3 rounded-3 mb-4 border">
                             <div class="col-md-5">
                                 <label class="form-label fw-semibold small text-secondary">Vyber čitateľa</label>
@@ -198,10 +136,140 @@
                 </div>
             </div>
         </div>
+
+        <!-- Dashboards section: Live data grids for system inventory -->
+        <div class="row g-4 mb-5">
+            <!-- Book registry catalog table with dynamic row generation -->
+            <div class="col-xl-7 col-lg-12">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-dark text-white fw-bold py-3 d-flex justify-content-between align-items-center">
+                        <span>📋 Zoznam kníh v knižnici</span>
+                        <span class="badge bg-primary">Knihy</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light text-secondary">
+                                    <tr>
+                                        <th style="width: 8%;" class="ps-4">ID</th>
+                                        <th style="width: 30%;">Názov</th>
+                                        <th style="width: 22%;">Autor</th>
+                                        <th style="width: 13%;">Stav</th>
+                                        <th style="width: 17%;">Požičal si</th>
+                                        <th style="width: 10%;" class="text-center">Akcia</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="books-table-body" class="border-top-0">
+                                    <tr>
+                                        <td colspan="6" class="text-muted text-center py-4 ps-4">Načítavam knihy...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reader directory table with dynamic row generation -->
+            <div class="col-xl-5 col-lg-12">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-dark text-white fw-bold py-3 d-flex justify-content-between align-items-center">
+                        <span>📇 Kartotéka čitateľov</span>
+                        <span class="badge bg-success">Čitatelia</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light text-secondary">
+                                    <tr>
+                                        <th class="ps-4">Číslo OP</th>
+                                        <th>Meno a priezvisko</th>
+                                        <th>Narodený(á)</th>
+                                        <th class="text-center">Akcia</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="readers-table-body">
+                                    <tr>
+                                        <td colspan="4" class="text-muted text-center py-4 ps-4">Načítavam čitateľov...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>        
     </div>
 
+    <!-- Modal dialog layout for editing existing book data -->
+    <div class="modal fade" id="editBookModal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="edit-book-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Upraviť knihu</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="id">
+                        <div class="mb-3">
+                            <label class="form-label">Názov</label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Autor</label>
+                            <input type="text" class="form-control" name="author" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušiť</button>
+                        <button type="submit" class="btn btn-primary">Uložiť zmeny</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal dialog layout for editing registered reader data -->
+    <div class="modal fade" id="editReaderModal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="edit-reader-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Upraviť čitateľa</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="op_number">
+                        <div class="mb-3">
+                            <label class="form-label">Číslo OP</label>
+                            <input type="text" id="edit-reader-op-display" class="form-control" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Meno</label>
+                            <input type="text" class="form-control" name="first_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Priezvisko</label>
+                            <input type="text" class="form-control" name="last_name" required>
+                        </div>
+                        <div class="mb-3"> 
+                            <label class="form-label">Dátum narodenia</label> 
+                            <input type="date" class="form-control" name="birth_date" required> </div>
+                        </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušiť</button>
+                        <button type="submit" class="btn btn-primary">Uložiť zmeny</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core framework scripts: Bootstrap runtime bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- UI Feedback: Floating toast notification for user action status -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1055;">
         <div id="notification-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -211,6 +279,7 @@
         </div>
     </div>
 
+    <!-- Core framework scripts: Bootstrap runtime bundle -->
     <script src="app.js"></script>
 </body>
 </html>

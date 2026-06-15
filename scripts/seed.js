@@ -4,7 +4,7 @@ const db = new sqlite3.Database('./kniznica.db');
 db.serialize(() => {
   // Insert sample books
   const books = [
-    ['Kód neznámy', 'Ján Kustra'],
+    ['Da Vinciho kód', 'Dan Brown'],
     ['Malý princ', 'Antoine de Saint-Exupéry'],
     ['Pýcha a predsudok', 'Jane Austen']
   ];

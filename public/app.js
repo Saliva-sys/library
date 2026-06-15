@@ -17,7 +17,7 @@ const initApp = () => {
         if (window.bootstrap) {
             const editBookEl = document.getElementById('editBookModal');
             const editReaderEl = document.getElementById('editReaderModal');
-            if (editBookEl) editBookModal = new bootstrap.Modal(editBookEl);
+            if (editBookEl) editBookModal = new bootstrap.Modal(editBookEl); 
             if (editReaderEl) editReaderModal = new bootstrap.Modal(editReaderEl);
         }
     } catch (err) {
@@ -25,6 +25,20 @@ const initApp = () => {
         toast = toast || null;
         editBookModal = editBookModal || null;
         editReaderModal = editReaderModal || null;
+    }
+
+    // Calendar button for edit reader modal: open native date picker when clicked
+    const birthPickerBtn = document.getElementById('edit-reader-birth-btn');
+    const birthInput = editReaderForm ? editReaderForm.querySelector('input[name="birth_date"]') : null;
+    if (birthPickerBtn && birthInput) {
+        birthPickerBtn.addEventListener('click', (e) => {
+            // Prefer modern showPicker API, fallback to focus
+            if (typeof birthInput.showPicker === 'function') {
+                birthInput.showPicker();
+            } else {
+                birthInput.focus();
+            }
+        });
     }
 
     const showToast = (message, type = 'success') => {
@@ -53,24 +67,31 @@ const initApp = () => {
         }[char]));
 
     const formatDate = (dateString) => new Date(dateString).toLocaleDateString('sk-SK');
+    // Helper: replace an element with a clone to remove any previously attached event listeners
+    const replaceWithCloned = (el) => {
+        if (!el || !el.parentNode) return el;
+        const clone = el.cloneNode(true);
+        el.parentNode.replaceChild(clone, el);
+        return clone;
+    };
 
     const openBookEditor = (book) => {
-        if (!editBookForm || !editBookModal) return;
-        editBookForm.querySelector('input[name="id"]').value = book.id;
-        editBookForm.querySelector('input[name="title"]').value = book.title;
-        editBookForm.querySelector('input[name="author"]').value = book.author;
-        editBookModal.show();
-    };
+if (!editBookForm || !editBookModal) return;
+editBookForm.querySelector('input[name="id"]').value = book.id;
+editBookForm.querySelector('input[name="title"]').value = book.title;
+editBookForm.querySelector('input[name="author"]').value = book.author;
+editBookModal.show();
+};
 
-    const openReaderEditor = (reader) => {
-        if (!editReaderForm || !editReaderModal) return;
-        editReaderForm.querySelector('input[name="op_number"]').value = reader.op_number;
-        editReaderForm.querySelector('#edit-reader-op-display').value = reader.op_number;
-        editReaderForm.querySelector('input[name="first_name"]').value = reader.first_name;
-        editReaderForm.querySelector('input[name="last_name"]').value = reader.last_name;
-        editReaderForm.querySelector('input[name="birth_date"]').value = reader.birth_date;
-        editReaderModal.show();
-    };
+const openReaderEditor = (reader) => {
+if (!editReaderForm || !editReaderModal) return;
+editReaderForm.querySelector('input[name="op_number"]').value = reader.op_number;
+editReaderForm.querySelector('#edit-reader-op-display').value = reader.op_number;
+editReaderForm.querySelector('input[name="first_name"]').value = reader.first_name;
+editReaderForm.querySelector('input[name="last_name"]').value = reader.last_name;
+editReaderForm.querySelector('input[name="birth_date"]').value = reader.birth_date;
+editReaderModal.show();
+};
 
     const loadBooks = async () => {
         try {
@@ -114,12 +135,12 @@ const initApp = () => {
                     <td class="text-secondary">${escapeHTML(book.author)}</td>
                     <td>${statusBadge}</td>
                     <td class="pe-4">${readerInfo}</td>
-                    <td class="text-center pe-4">
+                    <td class="text-center">
                         <button class="btn btn-sm btn-outline-primary edit-book-btn"
                             data-id="${book.id}"
                             data-title="${escapeHTML(book.title)}"
                             data-author="${escapeHTML(book.author)}">
-                            ✏️ Upraviť
+                            ✏️ 
                         </button>
                     </td>
                 `;
@@ -177,16 +198,16 @@ const initApp = () => {
                         <td class="fw-bold text-dark ps-4">${safeOp}</td>
                         <td>${safeFirst} ${safeLast}</td>
                         <td class="text-secondary">${formattedDate}</td>
-                        <td class="text-center pe-4">
+                        <td class="text-center">
                             <button class="btn btn-sm btn-outline-primary edit-reader-btn"
                                 data-op="${safeOp}"
                                 data-first="${safeFirst}"
                                 data-last="${safeLast}"
                                 data-birth="${reader.birth_date}">
-                                ✏️ Upraviť
+                                ✏️ 
                             </button>
                             <button class="btn btn-sm btn-outline-danger delete-reader-btn" data-op="${safeOp}">
-                                🗑️ Zrušiť
+                                🗑️ 
                             </button>
                         </td>
                     `;
