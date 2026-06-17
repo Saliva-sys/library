@@ -1,62 +1,109 @@
 const initApp = () => {
+    // =========================================================
+    // 1. DOM ELEMENT REFERENCES (Fetching elements from index.html)
+    // =========================================================
+
+    // Core HTML forms for data entry and manipulation
     const bookForm = document.getElementById('book-form');
     const readerForm = document.getElementById('reader-form');
     const borrowForm = document.getElementById('borrow-form');
+
+    // Modals forms used for editing existing database records
     const editBookForm = document.getElementById('edit-book-form');
     const editReaderForm = document.getElementById('edit-reader-form');
+
+    // =========================================================
+    // 2. UI COMPONENTS & STATE INITIALIZATION (Bootstrap components)
+    // =========================================================
+
+    // Toast notification elements for dynamic user feedback
     const toastEl = document.getElementById('notification-toast');
     const toastBody = toastEl ? toastEl.querySelector('.toast-body') : null;
+
+    // Component instances holding Bootstrap JavaScript objects
     let toast = null;
     let editBookModal = null;
     let editReaderModal = null;
 
+    // =========================================================
+    // 3. BOOTSTRAP COMPONENTS INITIALIZATION (With Defensive Error Handling)
+    // =========================================================
+
     try {
+        // Safe check: Initialize Toast notification module if Bootstrap and element are available
         if (window.bootstrap && toastEl) {
             toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 3000 });
         }
+
+        // Safe check: Initialize Modal modules for dynamic record editing
         if (window.bootstrap) {
             const editBookEl = document.getElementById('editBookModal');
             const editReaderEl = document.getElementById('editReaderModal');
+
+            // Map native DOM elements into interactive Bootstrap JavaScript instances
             if (editBookEl) editBookModal = new bootstrap.Modal(editBookEl); 
             if (editReaderEl) editReaderModal = new bootstrap.Modal(editReaderEl);
         }
     } catch (err) {
+        // Fallback mechanism: Prevent application crash if Bootstrap fails to load
         console.warn('Bootstrap initialization failed:', err);
         toast = toast || null;
         editBookModal = editBookModal || null;
         editReaderModal = editReaderModal || null;
     }
 
-    // Calendar button for edit reader modal: open native date picker when clicked
+    // =========================================================
+    // 4. UX HELPER - NATIVE DATE PICKER TRIGGER
+    // =========================================================
+
+    // Fetch the calendar trigger button and the respective date input field
     const birthPickerBtn = document.getElementById('edit-reader-birth-btn');
     const birthInput = editReaderForm ? editReaderForm.querySelector('input[name="birth_date"]') : null;
+
+    // Attach listener to trigger the date selection calendar programmatically
     if (birthPickerBtn && birthInput) {
         birthPickerBtn.addEventListener('click', (e) => {
-            // Prefer modern showPicker API, fallback to focus
+            // Feature detection: Prefer modern showPicker API, fallback to focus for older browsers
             if (typeof birthInput.showPicker === 'function') {
-                birthInput.showPicker();
+                birthInput.showPicker(); // Opens the visual calendar dropdown directly
             } else {
-                birthInput.focus();
+                birthInput.focus(); // Places the cursor into the field as a fallback
             }
         });
     }
 
+    // =========================================================
+    // 5. GLOBAL USER NOTIFICATION SYSTEM (Toast Alert Helper)
+    // =========================================================
+
     const showToast = (message, type = 'success') => {
+        // Primary flow: Use modern Bootstrap Toast UI if components loaded correctly
         if (toast && toastBody && toastEl) {
-            toastBody.textContent = message;
+            toastBody.textContent = message; // Safe text insertion preventing XSS injection
+
+            // Reset previous contextual status styles
             toastEl.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning');
+
+            // Map the notification type to the appropriate Bootstrap color class
             toastEl.classList.add(type === 'error' ? 'text-bg-danger' : type === 'warning' ? 'text-bg-warning' : 'text-bg-success');
-            toast.show();
-            return;
+            toast.show(); // Trigger CSS visual slide-in animation
+            return; // Terminate execution early if primary UI is fully functional
         }
 
+        // Secondary fallback: Use browser native alert dialog if Bootstrap is missing
         if (typeof alert === 'function') {
             alert(message);
         } else {
+            // Environment fallback: Log to developer console if headless or non-browser environment
             console.log(`[${type}] ${message}`);
         }
     };
 
+    // =========================================================
+    // 6. UTILITY HELPERS (Security, Formatting & DOM Management)
+    // =========================================================
+
+    // XSS Protection: replaces dangerous HTML characters with safe text entities
     const escapeHTML = (text) => String(text)
         .replace(/[&<>"']/g, (char) => ({
             '&': '&amp;',
@@ -66,8 +113,10 @@ const initApp = () => {
             "'": '&#39;'
         }[char]));
 
-    const formatDate = (dateString) => new Date(dateString).toLocaleDateString('sk-SK');
-    // Helper: replace an element with a clone to remove any previously attached event listeners
+    // Date formatting: converts YYYY-MM-DD into localized Slovak format (D. M. YYYY)
+        const formatDate = (dateString) => new Date(dateString).toLocaleDateString('sk-SK');
+
+    // Memory helper: replaces an element with its clone to strip away old event listeners
     const replaceWithCloned = (el) => {
         if (!el || !el.parentNode) return el;
         const clone = el.cloneNode(true);
@@ -75,24 +124,35 @@ const initApp = () => {
         return clone;
     };
 
+    // =========================================================
+    // 7. MODAL UI POPULATORS & EDIT OPENERS
+    // =========================================================
+
+    // Form pre-filler: opens book modal and populates fields with existing record values
     const openBookEditor = (book) => {
-if (!editBookForm || !editBookModal) return;
-editBookForm.querySelector('input[name="id"]').value = book.id;
-editBookForm.querySelector('input[name="title"]').value = book.title;
-editBookForm.querySelector('input[name="author"]').value = book.author;
-editBookModal.show();
-};
+        if (!editBookForm || !editBookModal) return;
+        editBookForm.querySelector('input[name="id"]').value = book.id;
+        editBookForm.querySelector('input[name="title"]').value = book.title;
+        editBookForm.querySelector('input[name="author"]').value = book.author;
+        editBookModal.show();
+        };
 
-const openReaderEditor = (reader) => {
-if (!editReaderForm || !editReaderModal) return;
-editReaderForm.querySelector('input[name="op_number"]').value = reader.op_number;
-editReaderForm.querySelector('#edit-reader-op-display').value = reader.op_number;
-editReaderForm.querySelector('input[name="first_name"]').value = reader.first_name;
-editReaderForm.querySelector('input[name="last_name"]').value = reader.last_name;
-editReaderForm.querySelector('input[name="birth_date"]').value = reader.birth_date;
-editReaderModal.show();
-};
+        // Form pre-filler: opens reader modal and populates fields with existing record values
+    const openReaderEditor = (reader) => {
+        if (!editReaderForm || !editReaderModal) return;
+        editReaderForm.querySelector('input[name="op_number"]').value = reader.op_number;
+        editReaderForm.querySelector('#edit-reader-op-display').value = reader.op_number;
+        editReaderForm.querySelector('input[name="first_name"]').value = reader.first_name;
+        editReaderForm.querySelector('input[name="last_name"]').value = reader.last_name;
+        editReaderForm.querySelector('input[name="birth_date"]').value = reader.birth_date;
+        editReaderModal.show();
+        };
 
+        // =========================================================
+    // 8. ASYNCHRONOUS DATA FETCHERS & DOM RENDERERS
+    // =========================================================
+
+    // Books view state: fetches books array from API and renders table rows and open selection dropdown
     const loadBooks = async () => {
         try {
             const response = await fetch('/api/books');
@@ -106,7 +166,7 @@ editReaderModal.show();
                 return;
             }
 
-            // Prechádzame knihy a zobrazujeme ich skutočné ID z databázy
+            // Iterate through books and display their actual database ID
             books.forEach((book) => {
                 const tr = document.createElement('tr');
                 
@@ -128,7 +188,7 @@ editReaderModal.show();
                     readerInfo = '<span class="text-muted">—</span>';
                 }
 
-                // SEM SME DALI SKUTOČNÉ book.id (predtým tam bol index, čo robilo neplechu s číslami)
+                // Render actual book.id here (previously using index caused numbering bugs)
                 tr.innerHTML = `
                     <td class="ps-4 text-secondary fw-semibold">${book.id}</td>
                     <td class="fw-bold text-dark">${escapeHTML(book.title)}</td>
@@ -177,6 +237,7 @@ editReaderModal.show();
         }
     };
 
+    // Readers view state: fetches readers from API, updates DOM table grid and borrowing selection logs
     async function loadReaders() {
         try {
             const response = await fetch('/api/readers');
@@ -265,6 +326,7 @@ editReaderModal.show();
         }
     }
 
+    // Borrows view state: requests relational active borrowings logs and builds tracking table layout
     async function loadBorrows() {
         try {
             const response = await fetch('/api/borrows');
@@ -312,6 +374,7 @@ editReaderModal.show();
         }
     }
 
+    // Return processor: fires DELETE request to drop active borrowing log and free the target book state
     async function returnBook(borrowId) {
         try {
             const response = await fetch(`/api/borrows/${borrowId}`, { method: 'DELETE' });
@@ -330,6 +393,11 @@ editReaderModal.show();
         }
     }
 
+    // =========================================================
+    // 9. EVENT LISTENERS - FORMS SUBMISSION HANDLERS
+    // =========================================================
+
+    // Creation event handler: serializes raw payload and POSTs new book record into system storage
     bookForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const titleInput = bookForm.querySelector('input[name="title"]');
@@ -356,6 +424,7 @@ editReaderModal.show();
         }
     });
 
+    // Creation event handler: serializes reader payload and POSTs new reader account info into system storage
     readerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const opInput = readerForm.querySelector('input[name="op_number"]');
@@ -389,6 +458,7 @@ editReaderModal.show();
         }
     });
 
+    // Modification event handler: updates specific fields on a book row via target parameters PUT call
     if (editBookForm) {
         editBookForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -417,6 +487,7 @@ editReaderModal.show();
         });
     }
 
+    // Modification event handler: updates specific fields on a reader row via target parameters PUT call
     if (editReaderForm) {
         editReaderForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -446,6 +517,7 @@ editReaderModal.show();
         });
     }
 
+    // Log creation event handler: posts pairing relation linking reader OP and book ID into borrows database table
     borrowForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const readerSelect = document.getElementById('borrow-reader-select');
@@ -475,15 +547,17 @@ editReaderModal.show();
             console.error('Chyba pri požičaní knihy:', error);
             showToast('Nepodarilo sa spojiť so serverom.', 'error');
         }
-    });
+        });
 
-    loadBooks();
-    loadReaders();
-    loadBorrows();
-};
+        // Initial grid state boot: loads database records data on application entry
+        loadBooks();
+        loadReaders();
+        loadBorrows();
+    };
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
+    // Application bootstrapper: delays initApp call until entire document content tree executes safe rendering
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+        initApp();
 }

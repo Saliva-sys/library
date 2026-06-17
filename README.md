@@ -1,4 +1,4 @@
-# library
+# library administration app
 Small app for library administration
 
 ## Table of contents
@@ -115,21 +115,21 @@ $env:PORT='3001'
 npm start
 ```
 
-Yes — môžete mať spustené obe verzie naraz, ale každá musí bežať na inom porte. Napríklad demo verzia na `http://localhost:3000` a normálna verzia na `http://localhost:3001`.
+You can have both versions running at the same time, but each must run on a different port. For example, the demo version on `http://localhost:3000` and the normal version on `http://localhost:3001`.
 
 ### Environment variables
 
-- `DEMO_AUTH=true` — zapne demo Basic Auth
-- `DEMO_USER` — demo užívateľ (predvolené `demo`)
-- `DEMO_PASS` — demo heslo (predvolené `demo123`)
-- `PORT` — port, na ktorom server beží (predvolené `3000`)
+- `DEMO_AUTH=true` — enables demo Basic Auth middleware
+- `DEMO_USER` — custom username for demo mode (fallback value is `demo` if not specified)
+- `DEMO_PASS` — custom password for demo mode (fallback value is `demo123` if not specified)
+- `PORT` — custom port configuration (fallback value is `3000` if not specified)
 
 ### Browser note
 
-Ak prehliadač po otvorení stránky vyžaduje prihlasovanie, zadajte používateľa a heslo podľa `DEMO_USER` a `DEMO_PASS`.
+If the browser requires login after opening the page, enter the username and password according to `DEMO_USER` and `DEMO_PASS`.
 
-Napríklad pre predvolené hodnoty použite:
+For example, for the default values use:
 
-- používateľ: `demo`
-- heslo: `demo123`
+- username: `demo`
+- password: `demo123`
 
