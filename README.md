@@ -100,7 +100,11 @@ The app now supports an optional demo authentication mode: the middleware is ena
 
 ```bash
 # run demo mode on port 3000 with default credentials
-$env:DEMO_AUTH='true'; $env:DEMO_USER='demo'; $env:DEMO_PASS='demo123'; $env:PORT='3000'; npm start
+$env:DEMO_AUTH='true'
+$env:DEMO_USER='demo'
+$env:DEMO_PASS='demo123'
+$env:PORT='3000'
+npm start
 ```
 
 ### Run normal mode without auth on a different port
